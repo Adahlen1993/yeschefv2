@@ -9,6 +9,10 @@ dist/
 web-build/
 expo-env.d.ts
 
+# Local DB scripts (do NOT commit)
+docs/sql/
+
+
 # Native
 .kotlin/
 *.orig.*
