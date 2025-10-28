@@ -34,9 +34,9 @@ export default function IngredientTypeahead({
     queryFn: () => (debounced ? searchIngredients(debounced, maxResults) : Promise.resolve([])),
   });
 
-  // 🔎 TEMP DEBUG — add these two lines
-  console.log("ingredient search status:", resultsQ.status, "error:", resultsQ.error);
-  console.log("ingredient search rows:", resultsQ.data);
+//   // 🔎 TEMP DEBUG — add these two lines
+//   console.log("ingredient search status:", resultsQ.status, "error:", resultsQ.error);
+//   console.log("ingredient search rows:", resultsQ.data);
 
 
   return (

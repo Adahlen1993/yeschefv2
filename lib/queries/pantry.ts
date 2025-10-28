@@ -35,16 +35,25 @@ export async function listPantryItems(): Promise<PantryItemRow[]> {
 }
 
 /** CREATE: insert a new pantry item for current user (RLS should attach user_id default) */
-export async function addPantryItem(ingredient_id: Id): Promise<PantryItemRow> {
+// lib/queries/pantry.ts
+export async function addPantryItem(ingredient_id: Id): Promise<PantryItemRow | null> {
   const { data, error } = await supabase
     .from("pantry_items")
     .insert([{ ingredient_id }])
-    .select("id, ingredient_id, created_at, ingredient:ingredients(name)")
-    .single();
+    .select("id, ingredient_id, created_at, ingredient:ingredients(name)");
 
-  if (error) throw error;
-  return normalizeRow((data ?? {}) as RawRow);
+  if (error) {
+    // Unique violation means it already exists; treat as benign
+    // Postgres code is 23505
+    // @ts-ignore supabase error has 'code'
+    if (error.code === "23505") return null;
+    throw error;
+  }
+
+  // insert+select returns an array
+  return data?.[0] ? normalizeRow(data[0] as RawRow) : null;
 }
+
 
 /** UPDATE: change ingredient on an existing pantry item (swap ingredient_id) */
 export async function updatePantryItem(id: Id, nextIngredientId: Id): Promise<PantryItemRow> {

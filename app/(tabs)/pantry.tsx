@@ -13,29 +13,56 @@ export default function PantryScreen() {
     queryFn: () => listPantryItems(),
   });
 
-  // CREATE
-  const addMut = useMutation({
-    mutationFn: (ingredient_id: string | number) => addPantryItem(ingredient_id),
-    onMutate: async (ingredient_id) => {
-      await qc.cancelQueries({ queryKey: ["pantry"] });
-      const prev = qc.getQueryData<PantryItemRow[]>(["pantry"]) ?? [];
-      const optimistic: PantryItemRow = {
-        id: `optimistic-${Date.now()}`,
-        ingredient_id: String(ingredient_id),
-        created_at: new Date().toISOString(),
-        ingredient: { name: "Adding…" },
-      };
-      qc.setQueryData<PantryItemRow[]>(["pantry"], [optimistic, ...prev]);
-      return { prev };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) qc.setQueryData(["pantry"], ctx.prev);
-      Alert.alert("Add failed", "Could not add this item. Please try again.");
-    },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["pantry"] });
-    },
-  });
+// CREATE
+const addMut = useMutation({
+  mutationFn: (ingredient_id: string | number) => addPantryItem(ingredient_id),
+
+  // Optional UI guard: don’t optimistically add if it already exists in cache
+  onMutate: async (ingredient_id) => {
+    await qc.cancelQueries({ queryKey: ["pantry"] });
+    const prev = qc.getQueryData<PantryItemRow[]>(["pantry"]) ?? [];
+
+    const exists = prev.some(r => String(r.ingredient_id) === String(ingredient_id));
+    if (exists) {
+      // Throw to hit onError with a friendly message
+      throw new Error("ALREADY_EXISTS");
+    }
+
+    const optimistic: PantryItemRow = {
+      id: `optimistic-${Date.now()}`,
+      ingredient_id: String(ingredient_id),
+      created_at: new Date().toISOString(),
+      ingredient: { name: "Adding…" },
+    };
+    qc.setQueryData<PantryItemRow[]>(["pantry"], [optimistic, ...prev]);
+    return { prev };
+  },
+
+  onError: (err, _vars, ctx) => {
+    if (ctx?.prev) qc.setQueryData(["pantry"], ctx.prev);
+    const msg =
+      (err as any)?.message === "ALREADY_EXISTS"
+        ? "That ingredient is already in your pantry."
+        : "Could not add this item. Please try again.";
+    Alert.alert("Add item", msg);
+  },
+
+  // 👇 This is the bit you asked about
+  onSettled: (_res, _err) => {
+    // Always re-sync with the server (also clears optimistic rows)
+    qc.invalidateQueries({ queryKey: ["panry"] }); // <-- typo guard: ensure key is correct!
+    qc.invalidateQueries({ queryKey: ["pantry"] }); // ✅ actual key you use
+  },
+
+  // (Optional) If you want a toast only on success:
+  // onSuccess: (res) => {
+  //   if (res === null) {
+  //     // We treated unique violation as null in addPantryItem
+  //     Alert.alert("Already added", "That ingredient is already in your pantry.");
+  //   }
+  // },
+});
+
 
   // UPDATE (swap ingredient)
   const updateMut = useMutation({
