@@ -21,3 +21,43 @@ export type UserIngredient = {
   name: string;
   created_at?: string | null;
 };
+
+export type GlobalRecipe = {
+  id: number;
+  title: string;
+  description: string | null;
+  instructions: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GlobalRecipeIngredient = {
+  id: number;
+  recipe_id: number;
+  ingredient_id: number;
+  quantity: number | null;
+  unit: string | null;
+  note: string | null;
+  created_at: string;
+};
+
+export type UserRecipe = {
+  id: number;
+  title: string;
+  description: string | null;
+  instructions: string | null;
+  created_by: string; // uuid
+  created_at: string;
+  updated_at: string;
+};
+
+export type UserRecipeIngredient = {
+  id: number;
+  recipe_id: number;
+  ingredient_id: number;
+  quantity: number | null;
+  unit: string | null;
+  note: string | null;
+  created_at: string;
+};
+
